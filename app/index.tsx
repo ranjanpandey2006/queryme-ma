@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchWithTimeout, getAPIUrl } from '../utils/apiConfig';
@@ -63,15 +64,27 @@ function TypingIndicator() {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
+  const { width } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   const API_URL = getAPIUrl();
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('loginStatus');
+      router.replace('/register')
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -89,6 +102,7 @@ export default function LandingPage() {
     setInputText("");
     setIsLoading(true);
     Keyboard.dismiss();
+    const mobilenumber = await AsyncStorage.getItem('mobilenumber');
 
     try {
       const url = `${API_URL}/text_query`;
@@ -102,6 +116,7 @@ export default function LandingPage() {
       const response = await fetchWithTimeout(url, {
         method: "POST",
         body: JSON.stringify({
+          mobilenumber: mobilenumber,
           text_input: messageText
         }),
       }, 30000, 2); // 30 second timeout, 2 retries (3 total attempts)
@@ -218,7 +233,7 @@ export default function LandingPage() {
           <View style={styles.centeredInputWrapper}>
             <TextInput
               style={styles.centeredTextInput}
-              placeholder="Message QueryMe..."
+              placeholder="Ask QueryMe AI Assistant..."
               placeholderTextColor="#999"
               value={inputText}
               onChangeText={setInputText}
@@ -315,7 +330,7 @@ export default function LandingPage() {
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Message QueryMe..."
+                  placeholder="Ask QueryMe AI Assistant..."
                   placeholderTextColor="#999"
                   value={inputText}
                   onChangeText={setInputText}

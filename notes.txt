@@ -1,0 +1,4 @@
+for build apk 
+cd android
+./gradlew clean
+./gradlew assembleRelease
